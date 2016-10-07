@@ -13,10 +13,33 @@
 	}
 	#hero{
 		background: url('1942.gif');
-		background-position: -85px -180px;
 		width:28px;
 		height:28px;
 		position:absolute;
+	}
+	#container div[dir=n]{
+		background-position: -85px -180px;
+	}
+	#container div[dir=ne]{
+		background-position: -115px -179px;
+	}
+	#container div[dir=e]{
+		background-position: -115px -205px;
+	}
+	#container div[dir=se]{
+		background-position: -115px -230px;
+	}
+	#container div[dir=s]{
+		background-position: -85px -230px;
+	}
+	#container div[dir=sw]{
+		background-position: -55px -230px;
+	}
+	#container div[dir=w]{
+		background-position: -55px -205px;
+	}
+	#container div[dir=nw]{
+		background-position: -55px -179px;
 	}
 	.enemy1{
 		background: url('1942.gif');
@@ -32,39 +55,436 @@
 		height:18px;
 		position:absolute;
 	}
+	.powerup{
+		background: url('1942.gif');
+		background-position: -70px -420px;
+		width:18px;
+		height:18px;
+		position:absolute;
+	}
+	.explosion{
+		background: url('1942.gif');
+		width:20px;
+		height:20px;
+		position:absolute;
+	}
+	#container div[frame='5']{
+		background-position: -40px -40px;
+	}
+	#container div[frame='4']{
+		background-position: -65px -40px;
+	}
+	#container div[frame='3']{
+		background-position: -85px -40px;
+	}
+	#container div[frame='2']{
+		background-position: -110px -35px;
+		width: 35px;
+		height: 30px;
+	}
+	#container div[frame='1']{
+		background-position: -145px -35px;
+		width: 35px;
+		height: 25px;
+	}
 	#score{
 		position:absolute;
 		border:10px solid red;
 		top:20px;
-		left:800px;
+		left:1050px;
 		background-color:white;
 		padding:10px;
 		font-size:30px;
 		font-family: Arial;	
 	}
+	.gameover{
+		width: 300px;
+		height: 100px;
+		border: 5px solid darkblue;
+		text-align: center;
+		font-size: 30pt;
+		font-weight: bold;
+		padding-top: 20px;
+		position: absolute;
+		top: 100px;
+		left: 350px;
+		background-color: black;
+		color: white;
+	}
 </style>
 </head>
 <body>
 	<div id='container'>
-		<div id='hero' style='top:300px; left:300px;'></div>
-		<div id='enemies'>
-			<div class='enemy1' style='top:100px; left:100px;'></div>
-			<div class='enemy1' style='top:100px; left:200px;'></div>
-			<div class='enemy1' style='top:100px; left:300px;'></div>
-			<div class='enemy1' style='top:100px; left:400px;'></div>
-		</div>
-		<div id='bullets'>
-			<div class='bullet' style='top:150px; left:200px;'></div>
-			<div class='bullet' style='top:250px; left:200px;'></div>
-			<div class='bullet' style='top:350px; left:200px;'></div>
-			<div class='bullet' style='top:450px; left:200px;'></div>
-		</div>	
+		<div id='hero' dir="n"></div>
+		<div id='enemies'></div>
+		<div id='bullets'></div>
+		<div id='explosions'></div>	
+		<div id="powerups"></div>
+		<div id="gameover"></div>
+		<audio id="gunSound"><source src="gun.wav" type="audio/wav"></audio>
+		<audio id="explosionSound"><source src="explosion.mp3" type="audio/mp3"></audio>
+		<audio id="deathSound"><source src="death.wav" type="audio/wav"></audio>
+		<audio id="powerupSound"><source src="powerup.mp3" type="audio/mp3"></audio>
+		<audio id="music" autoplay loop><source src="music.wav" type="audio/wav"></audio>
 	</div>
 
-	<div id='score'>100</div>
+	<div id='score'>0</div>
 
 
 <script>
+
+	var gametime = 0;
+
+	var hero = {
+		x: 300,
+		y: 300,
+		facingDirection: "n",
+		weapon: 0,
+		weaponTimer: 500,
+	}
+
+	var enemies = [{x: 50, y: 0}, {x: 250, y: 50}, {x: 450, y: 100}, {x: 650, y: 150}, {x: 750, y: 70}, {x: 850, y: 90}, {x: 950, y: 30}];
+
+	var bullets = [];
+
+	var score = 0;
+
+	var directions = ["n", "ne", "e", "se", "s", "sw", "w", "nw"];
+
+	var explosions = [];
+
+	var powerups = [];
+
+	function displayHero(){
+		document.getElementById('hero').style.top = hero.y + "px";
+		document.getElementById('hero').style.left = hero.x + "px";
+		document.getElementById('hero').setAttribute('dir', hero.facingDirection);
+	}
+
+	function displayEnemies(){
+		var output = "";
+		for(var i=0; i<enemies.length; i++){
+			output += "<div class='enemy1' style='top:" + enemies[i].y +"px; left:" + enemies[i].x + "px;'></div>";
+		}
+		document.getElementById('enemies').innerHTML = output;
+	}
+
+	function displayBullets(){
+		var output = "";
+		for(var i=0; i<bullets.length; i++){
+			output += "<div class='bullet' style='top:" + bullets[i].y +"px; left:" + bullets[i].x + "px;'></div>";
+
+		}
+		document.getElementById('bullets').innerHTML = output;
+	}
+
+	function displayExplosions(){
+		var output = "";
+		for (var i = 0; i < explosions.length; i++) {
+			output += "<div class='explosion' style='top:" + explosions[i].y + "px; left:" + explosions[i].x 
+			+ "px; ' frame='" + explosions[i].frame + "'></div>";
+		}
+		document.getElementById('explosions').innerHTML = output;
+	}
+
+	function displayPowerups(){
+		var output = "";
+		for (var i = 0; i < powerups.length; i++) {
+			output += "<div class='powerup' style='top:" + powerups[i].y + "px; left:" + powerups[i].x 
+			+ "px; '></div>";
+		}
+		document.getElementById('powerups').innerHTML = output;
+	}
+
+	function displayScore(){
+		document.getElementById('score').innerHTML = score;
+	}
+
+	function displayGameOver(){
+		document.getElementById('gameover').innerHTML = "<div class='gameover'> YOU DIED. GAME OVER.</div>";
+	}
+	function moveHero(){
+		if(hero.facingDirection == "n"){
+			hero.y -= 5;
+		} else if(hero.facingDirection == "ne"){
+			hero.y -= 3;
+			hero.x += 3;
+		} else if(hero.facingDirection == "e"){
+			hero.x += 5;
+		} else if(hero.facingDirection == "se"){
+			hero.y += 3;
+			hero.x += 3;
+		} else if(hero.facingDirection == "s"){
+			hero.y += 5;
+		} else if(hero.facingDirection == "sw"){
+			hero.y += 3;
+			hero.x -= 3;
+		} else if(hero.facingDirection == "w"){
+			hero.x -= 5;
+		} else if(hero.facingDirection == "nw"){
+			hero.y -= 3;
+			hero.x -= 3;
+		}
+		if(hero.x < 0){
+			hero.x = 980;
+		} else if(hero.x > 980){
+			hero.x = 0;
+		} else if(hero.y > 540){
+			hero.y = 0;
+		} else if(hero.y < 0){
+			hero.y = 540;
+		}
+	}
+
+	function moveEnemies(){
+		for(var i=0; i < enemies.length; i++){
+			enemies[i].y -= 5;
+
+			if(enemies[i].y > 540){
+				enemies[i].y = 0;
+			} else if(enemies[i].y < 0){
+				enemies[i].y = 540;
+			} else if(enemies[i].x > 980){
+				enemies[i].x = 0;
+			} else if(enemies[i] < 0){
+				enemies[i].x = 980;
+			}
+		}
+	}
+
+	function movePowerups(){
+		for(var i=powerups.length - 1; i >= 0; i--){
+			powerups[i].y -= 2;
+
+			if(powerups[i]){
+				if(powerups[i].y > 540){
+					powerups.splice(i, 1);
+				}
+			}
+		}
+	}
+
+	function moveBullets(){
+		for(var i=0; i < bullets.length; i++){
+			if(bullets[i].facingDirection == "n"){
+				bullets[i].y -= 7;
+			} else if(bullets[i].facingDirection == "ne"){
+				bullets[i].y -= 5;
+				bullets[i].x += 5;
+			} else if(bullets[i].facingDirection == "e"){
+				bullets[i].x += 7;
+			} else if(bullets[i].facingDirection == "se"){
+				bullets[i].y += 5;
+				bullets[i].x += 5;
+			} else if(bullets[i].facingDirection == "s"){
+				bullets[i].y += 7;
+			} else if(bullets[i].facingDirection == "sw"){
+				bullets[i].y += 5;
+				bullets[i].x -= 5;
+			} else if(bullets[i].facingDirection == "w"){
+				bullets[i].x -= 7;
+			} else if(bullets[i].facingDirection == "nw"){
+				bullets[i].y -= 5;
+				bullets[i].x -= 5;
+			}
+
+			if(bullets[i].y < 0 || bullets[i].y > 540 || bullets[i].x < 0 || bullets[i].x > 980){
+				bullets[i] = bullets[bullets.length -1];
+				bullets.pop();
+			}
+		}
+	}
+
+	function detectCollision(){
+		for(var i=bullets.length-1; i >= 0; i--){ //bullet-enemy collision
+			for(var j=enemies.length-1; j >= 0; j--){
+				if(bullets[i] && enemies[j]){
+					if(Math.abs(bullets[i].x - enemies[j].x - 7) < 13 && Math.abs(bullets[i].y - enemies[j].y) < 15){
+						explosions.push({x: enemies[j].x, y: enemies[j].y, frame: 5, frameTimer: 25 , } );
+						enemies.splice(j, 1);
+						bullets.splice(i, 1);
+						score += 10;
+						document.getElementById('explosionSound').pause();
+						document.getElementById('explosionSound').volume = 0.5;
+						document.getElementById('explosionSound').currentTime = 0;
+						document.getElementById('explosionSound').play();
+					}
+				}
+			}
+		}
+		for(var i=enemies.length-1; i >= 0; i--){ //hero-enemy collision
+			if(Math.abs(hero.x - enemies[i].x - 3) < 20 && Math.abs(hero.y - enemies[i].y + 5) < 20){
+				displayGameOver();
+				document.getElementById('deathSound').pause();
+				document.getElementById('deathSound').currentTime = 0.5;
+				document.getElementById('deathSound').play();
+				document.getElementById('music').pause();
+				clearInterval(loop);
+				
+	 		}
+		}
+		for(var i=powerups.length-1; i >= 0; i--){ //hero-powerup collision
+			if(Math.abs(hero.x - powerups[i].x - 3) < 13 && Math.abs(hero.y - powerups[i].y + 5) < 15){
+				document.getElementById('powerupSound').pause();
+				document.getElementById('powerupSound').currentTime = 0.5;
+				document.getElementById('powerupSound').play();
+				hero.weapon = Math.floor(Math.random() * 2) + 1;
+				powerups[i] = powerups[powerups.length - 1];
+				powerups.pop();
+	 		}
+		}
+	}
+
+	function spawnEnemies(){
+		var rand = Math.random() * 100;
+		if(rand > 99-(gametime / 500)){
+			enemies.push({x: Math.random()*980, y: 540});
+		} 
+	}
+	function spawnPowerups(){
+		var rand = Math.random() * 1000;
+		if(rand > 998){
+			powerups.push({x: Math.random()*980, y: 540});
+		}
+	}
+
+	function incrementExplosions(){
+		for (var i = explosions.length-1; i >= 0; i--) {
+			explosions[i].frameTimer--;
+			if(explosions[i].frameTimer % 5 == 0){
+				explosions[i].frame--;
+			}
+			if(explosions[i].frame == 0){
+				explosions.splice(i, 1);
+			}
+		}
+	}
+
+
+	function gameLoop(){
+		moveHero();
+		displayHero();
+		spawnEnemies();
+		spawnPowerups();
+		moveEnemies();
+		movePowerups();
+		displayEnemies();
+		displayPowerups();
+		moveBullets();
+		displayBullets();
+		detectCollision();
+		displayExplosions();
+		incrementExplosions();
+		displayScore();
+		gametime++;
+	}
+
+	var loop = setInterval(gameLoop, 20);
+
+	document.onkeydown = function(e){
+		if(e.keyCode == 37){ //left arrow key
+			if(hero.facingDirection == "n"){
+				hero.facingDirection = "nw";
+				console.log(hero.facingDirection);
+			} else{
+				hero.facingDirection = directions[directions.indexOf(hero.facingDirection) - 1];
+				console.log(hero.facingDirection);
+			}
+		} else if(e.keyCode == 39){ //right arrow key
+			if(hero.facingDirection == "nw"){
+				hero.facingDirection = "n";
+				console.log(hero.facingDirection);
+			} else{
+				hero.facingDirection = directions[directions.indexOf(hero.facingDirection) + 1];
+				console.log(hero.facingDirection);
+			}
+		}else if(e.keyCode == 32){ // space bar
+			document.getElementById('gunSound').pause();
+			document.getElementById('gunSound').currentTime = 0;
+			document.getElementById('gunSound').play();
+			if(hero.facingDirection == "n"){
+				bullets.push({x: hero.x + 5 , y: hero.y-15, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x + 15 , y: hero.y-10, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x , y: hero.y-10, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x + 20 , y: hero.y+3, facingDirection: "e"});
+					bullets.push({x: hero.x -10 , y: hero.y+3, facingDirection: "w"});
+				}
+			} else if(hero.facingDirection == "ne"){
+				bullets.push({x: hero.x + 15 , y: hero.y-10, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x + 5 , y: hero.y-15, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x + 20 , y: hero.y+3, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x , y: hero.y-10, facingDirection: "nw"});
+					bullets.push({x: hero.x + 14 , y: hero.y+17, facingDirection: "se"});
+				}
+			} else if(hero.facingDirection == "e"){
+				bullets.push({x: hero.x + 20 , y: hero.y+3, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x + 15 , y: hero.y-10, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x + 14 , y: hero.y+17, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x + 5 , y: hero.y-15, facingDirection: "n"});
+					bullets.push({x: hero.x + 5, y: hero.y+25, facingDirection: "s"});
+
+				}
+			} else if(hero.facingDirection == "se"){
+				bullets.push({x: hero.x + 14 , y: hero.y+17, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x + 20 , y: hero.y+3, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x + 5, y: hero.y+25, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x + 15 , y: hero.y-10, facingDirection: "ne"});
+					bullets.push({x: hero.x-3 , y: hero.y+17, facingDirection: "sw"});
+				}
+			} else if(hero.facingDirection == "s"){
+				bullets.push({x: hero.x + 5, y: hero.y+25, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x + 14 , y: hero.y+17, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x-3 , y: hero.y+17, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x + 20 , y: hero.y+3, facingDirection: "e"});
+					bullets.push({x: hero.x -10 , y: hero.y+3, facingDirection: "w"});
+				}
+			} else if(hero.facingDirection == "sw"){
+				bullets.push({x: hero.x-3 , y: hero.y+17, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x + 5, y: hero.y+25, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x -10 , y: hero.y+3, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x , y: hero.y-10, facingDirection: "nw"});
+					bullets.push({x: hero.x + 14 , y: hero.y+17, facingDirection: "se"});
+				}
+			} else if(hero.facingDirection == "w"){
+				bullets.push({x: hero.x -10 , y: hero.y+3, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x-3 , y: hero.y+17, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x , y: hero.y-10, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x + 5, y: hero.y+25, facingDirection: "s"});
+					bullets.push({x: hero.x + 5 , y: hero.y-15, facingDirection: "n"});
+				}
+			} else if(hero.facingDirection == "nw"){
+				bullets.push({x: hero.x , y: hero.y-10, facingDirection: hero.facingDirection});
+				if(hero.weapon == 1){
+					bullets.push({x: hero.x -10 , y: hero.y+3, facingDirection: hero.facingDirection});
+					bullets.push({x: hero.x + 5 , y: hero.y-15, facingDirection: hero.facingDirection});
+				} else if(hero.weapon == 2){
+					bullets.push({x: hero.x + 15 , y: hero.y-10, facingDirection: "ne"});
+					bullets.push({x: hero.x-3 , y: hero.y+17, facingDirection: "sw"});
+				}
+			}
+		}
+	}
+	document.onkeyup = function(e){
+		if(e.keyCode == 37){ //left arrow key
+		} else if(e.keyCode == 39){ //right arrow key
+		} else if(e.keyCode == 40){ //down arrow key
+		}else if(e.keyCode == 38){ // up arrow key
+		}
+	}
 
 </script>
 
